@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Event Scout</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --card: #141416;
+    --card-hover: #1a1a1e;
+    --border: #232328;
+    --text: #f0f0f2;
+    --text2: #9a9aa4;
+    --text3: #5c5c66;
+    --accent: #7c5cfc;
+    --accent-soft: rgba(124,92,252,0.10);
+    --accent-text: #b8a4ff;
+    --green: #2dd4a0;
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ─── Header ─── */
+  header {
+    padding: 40px 0 0;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+  }
+  header p { font-size: 12px; color: var(--text3); }
+
+  /* ─── City Tabs ─── */
+  .city-bar {
+    display: flex; justify-content: center; align-items: center;
+    gap: 6px; padding: 24px 0 0;
+    flex-wrap: wrap;
+  }
+  .city-tab {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 7px 16px;
+    font-size: 13px; font-weight: 500; color: var(--text2);
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .city-tab:hover { border-color: var(--accent); color: var(--text); }
+  .city-tab.active {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff; font-weight: 600;
+  }
+  .city-tab .flag { margin-right: 4px; }
+  .city-tab .num {
+    font-size: 11px; opacity: 0.7; margin-left: 4px;
+  }
+  .city-tab.active .num { opacity: 0.85; }
+  .city-more {
+    background: none; border: 1px solid var(--border);
+    border-radius: 20px; padding: 7px 14px;
+    font-size: 12px; color: var(--text3);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .city-more:hover { border-color: var(--accent); color: var(--text2); }
+  .city-hidden { display: none; }
+  .city-hidden.show { display: inline-flex; }
+
+  /* ─── Main Layout ─── */
+  .main-layout {
+    display: flex; gap: 32px;
+    padding: 28px 0 60px;
+    align-items: flex-start;
+  }
+
+  /* ─── Month Sidebar ─── */
+  .month-nav {
+    width: 120px; flex-shrink: 0;
+    position: sticky; top: 24px;
+  }
+  .month-label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text3);
+    margin-bottom: 8px; padding-left: 10px;
+  }
+  .month-btn {
+    display: block; width: 100%;
+    background: none; border: none;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 13px; color: var(--text3);
+    cursor: pointer; text-align: left;
+    transition: all 0.12s;
+    margin-bottom: 1px;
+  }
+  .month-btn:hover { background: var(--card); color: var(--text2); }
+  .month-btn.active {
+    background: var(--accent-soft);
+    color: var(--accent-text); font-weight: 600;
+  }
+  .month-btn .dot {
+    display: inline-block; width: 5px; height: 5px;
+    border-radius: 50%; background: var(--accent);
+    margin-right: 6px; vertical-align: middle;
+    opacity: 0;
+  }
+  .month-btn.has-events .dot { opacity: 1; }
+  .month-btn.active .dot { background: var(--accent-text); }
+
+  /* ─── Event Feed ─── */
+  .feed { flex: 1; min-width: 0; }
+
+  .feed-header {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 20px;
+  }
+  .feed-title { font-size: 18px; font-weight: 700; }
+  .feed-count { font-size: 12px; color: var(--text3); }
+
+  .date-label {
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    padding: 12px 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .date-label .today-dot {
+    display: inline-block;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+  }
+
+  /* ─── Event Card ─── */
+  .ev-card {
+    display: flex; gap: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 8px;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+    min-height: 88px;
+  }
+  .ev-card:hover {
+    border-color: #3a3a44;
+    background: var(--card-hover);
+  }
+
+  .ev-cover {
+    width: 56px; height: 56px;
+    border-radius: 10px; object-fit: cover;
+    flex-shrink: 0; background: #1e1e24;
+  }
+  .ev-placeholder {
+    width: 56px; height: 56px;
+    border-radius: 10px; flex-shrink: 0;
+    background: linear-gradient(135deg, #1e1e24 0%, #28283a 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .ev-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+
+  .ev-name {
+    font-size: 14px; font-weight: 600; line-height: 1.35;
+    margin-bottom: 4px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .ev-name a { color: var(--text); }
+  .ev-name a:hover { color: var(--accent-text); }
+
+  .ev-time {
+    font-size: 12px; color: var(--text2);
+    margin-bottom: 2px;
+  }
+
+  .ev-location {
+    font-size: 11px; color: var(--text3);
+    margin-bottom: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .ev-org {
+    font-size: 11px; color: var(--text3);
+    display: flex; align-items: center; gap: 4px;
+    flex-wrap: wrap;
+  }
+  .ev-org-name { color: var(--text2); }
+  .ev-org-more {
+    color: var(--accent-text); cursor: pointer;
+    font-size: 10px;
+  }
+  .ev-org-more:hover { text-decoration: underline; }
+  .ev-org-expanded { display: none; }
+  .ev-org-expanded.show { display: inline; }
+
+  .ev-type {
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    padding: 2px 6px; border-radius: 4px;
+    margin-left: 8px;
+  }
+  .ev-type-online { background: rgba(45,212,160,0.1); color: var(--green); }
+  .ev-type-city { background: var(--accent-soft); color: var(--accent-text); }
+
+  .empty-state {
+    text-align: center; padding: 80px 0;
+    color: var(--text3); font-size: 13px;
+  }
+  .empty-state p:first-child { font-size: 32px; margin-bottom: 12px; }
+
+  /* ─── Source Toggle ─── */
+  .source-toggle {
+    display: flex; justify-content: center; gap: 4px;
+    padding: 18px 0 0;
+  }
+  .source-btn {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 20px;
+    font-size: 13px; font-weight: 500; color: var(--text2);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .source-btn:hover { border-color: var(--accent); color: var(--text); }
+  .source-btn.active {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff; font-weight: 600;
+  }
+  .source-btn .src-count {
+    font-size: 11px; opacity: 0.7; margin-left: 5px;
+  }
+  .source-btn.active .src-count { opacity: 0.85; }
+
+  /* ─── Web Discoveries Feed ─── */
+  .web-section-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; font-weight: 700; color: var(--text);
+    padding: 20px 0 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .web-section-title .ws-icon {
+    font-size: 16px;
+  }
+  .web-section-title .ws-count {
+    font-size: 11px; color: var(--text3); font-weight: 400;
+    margin-left: auto;
+  }
+
+  .web-card {
+    display: flex; gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 6px;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+    align-items: flex-start;
+  }
+  .web-card:hover {
+    border-color: #3a3a44;
+    background: var(--card-hover);
+  }
+
+  .web-badge {
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    font-size: 16px;
+    background: #1e1e24;
+  }
+  .web-badge.linkedin { background: rgba(10,102,194,0.15); color: #0a66c2; font-size: 13px; font-weight: 700; }
+  .web-badge.twitter  { background: rgba(29,155,240,0.12); color: #1d9bf0; }
+  .web-badge.event-plat { background: rgba(45,212,160,0.1); color: var(--green); }
+  .web-badge.other-src  { background: rgba(124,92,252,0.08); color: var(--accent-text); }
+
+  .web-info { flex: 1; min-width: 0; }
+  .web-title {
+    font-size: 13px; font-weight: 600; line-height: 1.35;
+    margin-bottom: 4px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .web-snippet {
+    font-size: 12px; color: var(--text3); line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .web-meta {
+    font-size: 11px; color: var(--text3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .web-domain {
+    color: var(--text2);
+  }
+  .web-badge-inline {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 4px;
+    font-size: 9px; font-weight: 700; flex-shrink: 0;
+  }
+  .web-city-tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 4px;
+    background: var(--accent-soft); color: var(--accent-text);
+  }
+
+  /* Web filter pills */
+  .web-filter-bar {
+    display: flex; gap: 6px; padding: 0 0 6px;
+    flex-wrap: wrap;
+  }
+  .web-filter-pill {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 5px 14px;
+    font-size: 12px; color: var(--text3);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .web-filter-pill:hover { border-color: var(--accent); color: var(--text2); }
+  .web-filter-pill.active {
+    background: var(--accent-soft); border-color: var(--accent);
+    color: var(--accent-text); font-weight: 600;
+  }
+
+  @media (max-width: 700px) {
+    .main-layout { flex-direction: column; gap: 20px; }
+    .month-nav {
+      width: 100%; position: static;
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .month-label { display: none; }
+    .month-btn { width: auto; padding: 6px 12px; text-align: center; }
+    .container { padding: 0 12px; }
+    .ev-card { padding: 12px; }
+    .ev-cover, .ev-placeholder { width: 44px; height: 44px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>AI Event Scout</h1>
+    <p>Discover AI community events across the globe</p>
+  </header>
+
+  <div class="source-toggle" id="sourceToggle"></div>
+  <div class="city-bar" id="cityBar"></div>
+
+  <div class="main-layout">
+    <nav class="month-nav" id="monthNav"></nav>
+    <section class="feed" id="feed"></section>
+  </div>
+</div>
+
+<script>
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const FLAGS = { Singapore:'🇸🇬', Beijing:'🇨🇳', Tokyo:'🇯🇵', Bangkok:'🇹🇭', Seoul:'🇰🇷', 'Silicon Valley':'🇺🇸' };
+const TODAY_STR = '2026-04-10';
+const MAX_VISIBLE_CITIES = 5;
+
+const SOURCE_ICONS = {
+  'linkedin.com': { cls: 'linkedin', icon: 'in', label: 'LinkedIn' },
+  'twitter.com':  { cls: 'twitter',  icon: '𝕏', label: 'Twitter/X' },
+  'x.com':        { cls: 'twitter',  icon: '𝕏', label: 'X' },
+};
+const EVENT_PLAT_LABEL = {
+  'eventbrite.com': 'Eventbrite', 'eventbrite.sg': 'Eventbrite',
+  'eventbrite.co.uk': 'Eventbrite',
+  'connpass.com': 'Connpass', 'peatix.com': 'Peatix',
+  'festa.io': 'Festa', 'huodongxing.com': '活动行', 'bagevent.com': '百格活动',
+};
+
+let allEvents = [];
+let webResults = [];
+let cityList = [];
+let currentCity = 'all';
+let currentMonth = 4;
+let expandedCities = false;
+let currentSource = 'luma'; // 'luma' | 'web'
+let webCategoryFilter = 'all'; // 'all' | 'event_platform' | 'social_media' | 'other'
+
+async function init() {
+  const [lumaRes, webRes] = await Promise.all([
+    fetch('./output_all_cities.json?t=' + Date.now()),
+    fetch('./output_web_search.json?t=' + Date.now()).catch(() => null),
+  ]);
+
+  const lumaData = await lumaRes.json();
+  const raw = lumaData.cities || {};
+  const lumaCities = new Set();
+  allEvents = [];
+  for (const [city, info] of Object.entries(raw)) {
+    lumaCities.add(city);
+    for (const ev of (info.events || [])) {
+      ev._city = city;
+      allEvents.push(ev);
+    }
+  }
+
+  webResults = [];
+  if (webRes && webRes.ok) {
+    const webData = await webRes.json();
+    for (const [city, info] of Object.entries(webData.cities || {})) {
+      lumaCities.add(city);
+      for (const r of (info.results || [])) {
+        r._city = city;
+        webResults.push(r);
+      }
+    }
+  }
+
+  cityList = [...lumaCities];
+
+  renderSourceToggle();
+  renderCityBar();
+  renderMonthNav();
+  renderFeed();
+}
+
+/* ─── Source Toggle ─── */
+function renderSourceToggle() {
+  const el = document.getElementById('sourceToggle');
+  const webCount = getWebByCity().length;
+  el.innerHTML = `
+    <button class="source-btn ${currentSource==='luma'?'active':''}" data-src="luma">
+      📅 Luma Events<span class="src-count">${allEvents.length}</span>
+    </button>
+    <button class="source-btn ${currentSource==='web'?'active':''}" data-src="web">
+      🔍 Web Discoveries<span class="src-count">${webResults.length}</span>
+    </button>`;
+  el.querySelectorAll('.source-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentSource = btn.dataset.src;
+      webCategoryFilter = 'all';
+      if (currentSource === 'web') autoSelectWebMonth();
+      else autoSelectMonth();
+      renderSourceToggle();
+      renderCityBar();
+      renderMonthNav();
+      renderFeed();
+    });
+  });
+}
+
+function getWebByCity() {
+  if (currentCity === 'all') return webResults;
+  return webResults.filter(r => r._city === currentCity);
+}
+
+/* ─── City Bar ─── */
+function renderCityBar() {
+  const bar = document.getElementById('cityBar');
+  const pool = currentSource === 'luma' ? allEvents : webResults;
+  const counts = {};
+  for (const ev of pool) counts[ev._city] = (counts[ev._city]||0) + 1;
+
+  let html = `<div class="city-tab ${currentCity==='all'?'active':''}" data-city="all">
+    <span class="flag">🌏</span>All<span class="num">${pool.length}</span></div>`;
+
+  cityList.forEach((city, i) => {
+    const hidden = i >= MAX_VISIBLE_CITIES && !expandedCities;
+    html += `<div class="city-tab ${currentCity===city?'active':''} ${hidden?'city-hidden':''}" data-city="${city}">
+      <span class="flag">${FLAGS[city]||''}</span>${city}<span class="num">${counts[city]||0}</span></div>`;
+  });
+
+  if (cityList.length > MAX_VISIBLE_CITIES) {
+    const extra = cityList.length - MAX_VISIBLE_CITIES;
+    html += `<div class="city-more" id="cityMoreBtn">${expandedCities ? 'Show less' : `+${extra} more`}</div>`;
+  }
+
+  bar.innerHTML = html;
+
+  bar.querySelectorAll('.city-tab').forEach(el => {
+    el.addEventListener('click', () => {
+      currentCity = el.dataset.city;
+      if (currentSource === 'web') autoSelectWebMonth();
+      else autoSelectMonth();
+      renderCityBar();
+      renderMonthNav();
+      renderFeed();
+    });
+  });
+
+  const moreBtn = document.getElementById('cityMoreBtn');
+  if (moreBtn) {
+    moreBtn.addEventListener('click', () => {
+      expandedCities = !expandedCities;
+      renderCityBar();
+    });
+  }
+}
+
+/* ─── Month Nav ─── */
+function getMonthEvents(month) {
+  return getFilteredByCity().filter(ev => {
+    if (!ev.date) return false;
+    const m = parseInt(ev.date.split('-')[1], 10);
+    return m === month;
+  });
+}
+
+function getFilteredByCity() {
+  if (currentCity === 'all') return allEvents;
+  return allEvents.filter(e => e._city === currentCity);
+}
+
+function autoSelectMonth() {
+  const events = getFilteredByCity();
+  if (events.length === 0) { currentMonth = 4; return; }
+  const months = new Set();
+  events.forEach(ev => { if (ev.date) months.add(parseInt(ev.date.split('-')[1],10)); });
+  if (months.has(4)) { currentMonth = 4; return; }
+  const sorted = [...months].sort((a,b) => a - b);
+  currentMonth = sorted.find(m => m >= 4) || sorted[0] || 4;
+}
+
+function getWebMonthEvents(month) {
+  const pool = getWebByCity();
+  if (month === 0) return pool.filter(r => !r.date);
+  return pool.filter(r => {
+    if (!r.date) return false;
+    const m = parseInt(r.date.split('-')[1], 10);
+    return m === month;
+  });
+}
+
+function autoSelectWebMonth() {
+  const pool = getWebByCity();
+  const months = new Set();
+  pool.forEach(r => { if (r.date) months.add(parseInt(r.date.split('-')[1],10)); });
+  if (months.has(4)) { currentMonth = 4; return; }
+  const sorted = [...months].sort((a,b) => a - b);
+  currentMonth = sorted.find(m => m >= 4) || sorted[0] || 0;
+}
+
+function renderMonthNav() {
+  const nav = document.getElementById('monthNav');
+  if (currentSource === 'web') {
+    renderWebMonthNav(nav);
+    return;
+  }
+  nav.style.display = '';
+  let html = '<div class="month-label">2026</div>';
+  for (let m = 1; m <= 12; m++) {
+    const count = getMonthEvents(m).length;
+    const hasEvents = count > 0;
+    html += `<button class="month-btn ${m===currentMonth?'active':''} ${hasEvents?'has-events':''}" data-month="${m}">
+      <span class="dot"></span>${MONTHS_SHORT[m-1]}${hasEvents ? ` (${count})` : ''}
+    </button>`;
+  }
+  nav.innerHTML = html;
+
+  nav.querySelectorAll('.month-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentMonth = parseInt(btn.dataset.month, 10);
+      renderMonthNav();
+      renderFeed();
+    });
+  });
+}
+
+/* ─── Feed ─── */
+function renderFeed() {
+  if (currentSource === 'web') { renderWebFeed(); return; }
+  renderLumaFeed();
+}
+
+function renderLumaFeed() {
+  const feed = document.getElementById('feed');
+  const events = getMonthEvents(currentMonth);
+
+  const showCity = currentCity === 'all';
+  const monthName = MONTHS[currentMonth - 1];
+
+  let html = `<div class="feed-header">
+    <div class="feed-title">${monthName} 2026</div>
+    <div class="feed-count">${events.length} events</div>
+  </div>`;
+
+  if (events.length === 0) {
+    html += `<div class="empty-state"><p>📭</p><p>No AI events in ${monthName} 2026${currentCity !== 'all' ? ` for ${currentCity}` : ''}</p></div>`;
+    feed.innerHTML = html;
+    return;
+  }
+
+  const sorted = [...events].sort((a,b) => (a.start_at||'').localeCompare(b.start_at||''));
+
+  const groups = new Map();
+  for (const ev of sorted) {
+    const key = ev.date || 'unknown';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(ev);
+  }
+
+  for (const [dateKey, evs] of groups) {
+    const d = new Date(dateKey + 'T00:00:00');
+    const isToday = dateKey === TODAY_STR;
+    const dayStr = `${DAYS[d.getDay()]}, ${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+    html += `<div class="date-label">${isToday ? '<span class="today-dot"></span>' : ''}${dayStr}${isToday ? ' · Today' : ''}</div>`;
+    for (const ev of evs) html += card(ev, showCity);
+  }
+
+  feed.innerHTML = html;
+
+  feed.querySelectorAll('.ev-org-more').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.target;
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.toggle('show');
+        btn.textContent = el.classList.contains('show') ? 'less' : btn.dataset.label;
+      }
+    });
+  });
+}
+
+function renderWebMonthNav(nav) {
+  nav.style.display = '';
+  const pool = getWebByCity();
+  let html = '<div class="month-label">2026</div>';
+  for (let m = 1; m <= 12; m++) {
+    const count = getWebMonthEvents(m).length;
+    const hasEvents = count > 0;
+    html += `<button class="month-btn ${m===currentMonth?'active':''} ${hasEvents?'has-events':''}" data-month="${m}">
+      <span class="dot"></span>${MONTHS_SHORT[m-1]}${hasEvents ? ` (${count})` : ''}
+    </button>`;
+  }
+  const noDateCount = pool.filter(r => !r.date).length;
+  html += `<button class="month-btn ${currentMonth===0?'active':''} ${noDateCount>0?'has-events':''}" data-month="0">
+    <span class="dot"></span>Undated${noDateCount > 0 ? ` (${noDateCount})` : ''}
+  </button>`;
+  nav.innerHTML = html;
+
+  nav.querySelectorAll('.month-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentMonth = parseInt(btn.dataset.month, 10);
+      renderMonthNav();
+      renderFeed();
+    });
+  });
+}
+
+function renderWebFeed() {
+  const feed = document.getElementById('feed');
+  const showCity = currentCity === 'all';
+
+  const events = getWebMonthEvents(currentMonth);
+
+  // Category filter
+  const cats = { event_platform: [], social_media: [], other: [] };
+  for (const r of events) {
+    const t = r.source_type || 'other';
+    (cats[t] || cats.other).push(r);
+  }
+  const catMeta = {
+    event_platform: { icon: '🎫', label: 'Event Platforms' },
+    social_media:   { icon: '💬', label: 'Social Media' },
+    other:          { icon: '🌐', label: 'Other' },
+  };
+  const filtered = webCategoryFilter === 'all' ? events : events.filter(r => (r.source_type || 'other') === webCategoryFilter);
+
+  const monthLabel = currentMonth === 0 ? 'Undated' : `${MONTHS[currentMonth - 1]} 2026`;
+  let html = `<div class="feed-header">
+    <div class="feed-title">${monthLabel}</div>
+    <div class="feed-count">${filtered.length} results</div>
+  </div>`;
+
+  html += `<div class="web-filter-bar">`;
+  html += `<div class="web-filter-pill ${webCategoryFilter==='all'?'active':''}" data-wf="all">All (${events.length})</div>`;
+  for (const [key, meta] of Object.entries(catMeta)) {
+    const n = cats[key].length;
+    if (n === 0) continue;
+    html += `<div class="web-filter-pill ${webCategoryFilter===key?'active':''}" data-wf="${key}">${meta.icon} ${meta.label} (${n})</div>`;
+  }
+  html += `</div>`;
+
+  if (filtered.length === 0) {
+    html += `<div class="empty-state"><p>🔍</p><p>No web discoveries for ${monthLabel}${currentCity !== 'all' ? ` in ${currentCity}` : ''}</p></div>`;
+    feed.innerHTML = html;
+    bindWebFilters();
+    return;
+  }
+
+  if (currentMonth !== 0) {
+    // Has dates — group by date like Luma view
+    const sorted = [...filtered].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    const groups = new Map();
+    for (const r of sorted) {
+      const key = r.date || 'unknown';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    }
+    for (const [dateKey, items] of groups) {
+      const d = new Date(dateKey + 'T00:00:00');
+      const isToday = dateKey === TODAY_STR;
+      const dayStr = `${DAYS[d.getDay()]}, ${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+      html += `<div class="date-label">${isToday ? '<span class="today-dot"></span>' : ''}${dayStr}${isToday ? ' · Today' : ''}</div>`;
+      for (const r of items) html += webCard(r, showCity);
+    }
+  } else {
+    // Undated — group by category
+    for (const [key, meta] of Object.entries(catMeta)) {
+      const items = (webCategoryFilter === 'all') ? cats[key] : (key === webCategoryFilter ? filtered : []);
+      if (items.length === 0) continue;
+      if (webCategoryFilter === 'all') {
+        html += `<div class="web-section-title"><span class="ws-icon">${meta.icon}</span>${meta.label}<span class="ws-count">${items.length}</span></div>`;
+      }
+      for (const r of items) html += webCard(r, showCity);
+    }
+  }
+
+  feed.innerHTML = html;
+  bindWebFilters();
+}
+
+function bindWebFilters() {
+  document.querySelectorAll('.web-filter-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      webCategoryFilter = pill.dataset.wf;
+      renderWebFeed();
+    });
+  });
+}
+
+function webCard(r, showCity) {
+  const domain = r.source_domain || '';
+  const srcInfo = SOURCE_ICONS[domain];
+  let badgeCls = 'other-src', badgeIcon = '🔗';
+
+  if (srcInfo) {
+    badgeCls = srcInfo.cls;
+    badgeIcon = srcInfo.icon;
+  } else if (r.source_type === 'event_platform') {
+    badgeCls = 'event-plat';
+    badgeIcon = '🎫';
+  }
+
+  // Use cover_url if available, otherwise badge
+  const coverHtml = r.cover_url
+    ? `<img class="ev-cover" src="${esc(r.cover_url)}" alt="" loading="lazy">`
+    : `<div class="web-badge ${badgeCls}">${badgeIcon}</div>`;
+
+  const displayName = r.name || r.title || '';
+  const displayDomain = domain.replace(/^www\./, '');
+
+  // Build date/time string
+  let dateTimeStr = '';
+  if (r.start_at) {
+    try {
+      const t = new Date(r.start_at);
+      if (!isNaN(t)) {
+        dateTimeStr = t.toLocaleDateString('en', { weekday:'short', month:'short', day:'numeric' });
+        if (r.time_str) dateTimeStr += ' · ' + r.time_str;
+      }
+    } catch(e) {}
+  } else if (r.date) {
+    try {
+      const t = new Date(r.date + 'T00:00:00');
+      dateTimeStr = t.toLocaleDateString('en', { weekday:'short', month:'short', day:'numeric' });
+      if (r.time_str) dateTimeStr += ' · ' + r.time_str;
+    } catch(e) {}
+  }
+
+  let typeBadge = '';
+  if (showCity && r._city) typeBadge = `<span class="ev-type ev-type-city">${FLAGS[r._city]||''} ${r._city}</span>`;
+
+  const orgHtml = r.organizer_name
+    ? `<div class="ev-org">by <span class="ev-org-name">${esc(r.organizer_name)}</span></div>`
+    : '';
+
+  return `<a class="ev-card" href="${esc(r.url)}" target="_blank">
+    ${coverHtml}
+    <div class="ev-info">
+      <div class="ev-name">${esc(displayName)}${typeBadge}</div>
+      ${dateTimeStr ? `<div class="ev-time">${dateTimeStr}</div>` : ''}
+      ${r.location ? `<div class="ev-location">📍 ${esc(r.location.length > 50 ? r.location.slice(0,50)+'…' : r.location)}</div>` : ''}
+      ${orgHtml}
+      ${r.snippet && !r.location && !dateTimeStr ? `<div class="web-snippet">${esc(r.snippet)}</div>` : ''}
+      <div class="web-meta">
+        <span class="web-badge-inline ${badgeCls}">${badgeIcon}</span>
+        <span class="web-domain">${esc(displayDomain)}</span>
+      </div>
+    </div>
+  </a>`;
+}
+
+function card(ev, showCity) {
+  const coverHtml = ev.cover_url
+    ? `<img class="ev-cover" src="${esc(ev.cover_url)}" alt="" loading="lazy">`
+    : `<div class="ev-placeholder">✦</div>`;
+
+  let dateTimeStr = '';
+  if (ev.start_at) {
+    try {
+      const t = new Date(ev.start_at);
+      const dateStr = t.toLocaleDateString('en', { weekday:'short', month:'short', day:'numeric', timeZone: ev.timezone || undefined });
+      const timeStart = t.toLocaleTimeString('en', { hour:'numeric', minute:'2-digit', hour12:true, timeZone: ev.timezone || undefined });
+      dateTimeStr = dateStr + ' · ' + timeStart;
+      if (ev.end_at) {
+        const te = new Date(ev.end_at);
+        dateTimeStr += ' – ' + te.toLocaleTimeString('en', { hour:'numeric', minute:'2-digit', hour12:true, timeZone: ev.timezone || undefined });
+      }
+    } catch(e) {}
+  }
+
+  let typeBadge = '';
+  if (showCity && ev._city) typeBadge = `<span class="ev-type ev-type-city">${FLAGS[ev._city]||''} ${ev._city}</span>`;
+  if (ev.location_type === 'online') typeBadge += `<span class="ev-type ev-type-online">ONLINE</span>`;
+
+  const orgHtml = buildOrgHtml(ev);
+
+  const uid = 'org-' + Math.random().toString(36).slice(2, 8);
+
+  return `<a class="ev-card" href="${esc(ev.url)}" target="_blank">
+    ${coverHtml}
+    <div class="ev-info">
+      <div class="ev-name">${esc(ev.name)}${typeBadge}</div>
+      <div class="ev-time">${dateTimeStr}</div>
+      ${ev.location ? `<div class="ev-location">📍 ${esc(ev.location.length > 50 ? ev.location.slice(0,50)+'…' : ev.location)}</div>` : ''}
+      ${orgHtml}
+    </div>
+  </a>`;
+}
+
+function buildOrgHtml(ev) {
+  const raw = ev.organizer_name || '';
+  if (!raw) return '';
+  const names = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (names.length === 0) return '';
+
+  const MAX_SHOW = 3;
+  if (names.length <= MAX_SHOW) {
+    return `<div class="ev-org">by ${names.map(n => `<span class="ev-org-name">${esc(n)}</span>`).join(', ')}</div>`;
+  }
+
+  const uid = 'org-' + Math.random().toString(36).slice(2, 8);
+  const visible = names.slice(0, MAX_SHOW);
+  const hidden = names.slice(MAX_SHOW);
+  const moreLabel = `+${hidden.length} more`;
+
+  return `<div class="ev-org">by ${visible.map(n => `<span class="ev-org-name">${esc(n)}</span>`).join(', ')}<span class="ev-org-more" data-target="${uid}" data-label="${moreLabel}">${moreLabel}</span><span id="${uid}" class="ev-org-expanded">, ${hidden.map(n => `<span class="ev-org-name">${esc(n)}</span>`).join(', ')}</span></div>`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
