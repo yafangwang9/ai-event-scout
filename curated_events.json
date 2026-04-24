@@ -520,5 +520,23 @@
     "cover_url": "https://images.lumacdn.com/event-covers/np/ee59c4a9-12bb-45df-85c1-ea7b9951eaec.png",
     "description": "Join us at Cafe Cursor Córdoba 🇦🇷We're taking over Escondido Café for an afternoon of building, connecting, and good coffee.",
     "url": "https://lu.ma/ygk09jqj"
+  },
+  {
+    "slug": "9w2kd8ml",
+    "name": "Cursor Hackathon Athens",
+    "date": "2026-04-24",
+    "start_at": "2026-04-24T15:00:00.000Z",
+    "end_at": "2026-04-24T17:30:00.000Z",
+    "timezone": "Europe/Athens",
+    "location": "Athina, Greece",
+    "city": "Athina",
+    "location_type": "offline",
+    "region": "Greece",
+    "hosts": "Vasilis Tsolis",
+    "guest_count": 44,
+    "sold_out": false,
+    "cover_url": "https://images.lumacdn.com/event-covers/ih/ec562af4-1c8b-4991-9e6d-2bacf0d8a078.png",
+    "description": "Four hours. One AI-powered editor. Ship something that didn't exist when you walked in.",
+    "url": "https://lu.ma/9w2kd8ml"
   }
 ]
