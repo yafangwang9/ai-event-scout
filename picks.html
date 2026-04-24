@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Builder Picks — This Week</title>
+<style>
+:root{--bg:#0a0a0b;--card:#141416;--card-hover:#1a1a1e;--border:#28282e;--text:#f0f0f2;--text2:#a0a0aa;--text3:#5c5c66;--accent:#7c5cfc;--accent-soft:rgba(124,92,252,.08);--green:#2dd4a0;--red:#f43f5e;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+.hero{text-align:center;padding:48px 24px 12px}
+.hero h1{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.hero p{font-size:13px;color:var(--text3);margin-top:6px}
+
+.region-nav{display:flex;justify-content:center;gap:6px;padding:16px 24px;flex-wrap:wrap;position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border)}
+.region-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:.15s;white-space:nowrap}
+.region-btn:hover{border-color:var(--accent);color:var(--text)}
+.region-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.container{max-width:760px;margin:0 auto;padding:20px 24px 80px}
+
+.region-section{margin-top:32px}
+.region-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.region-flag{font-size:22px}
+.region-name{font-size:16px;font-weight:700}
+.region-count{font-size:11px;color:var(--text3);background:var(--card);padding:2px 8px;border-radius:10px}
+
+.event-card{display:flex;gap:14px;padding:14px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px;transition:.2s;background:var(--card)}
+.event-card:hover{border-color:var(--accent);background:var(--card-hover);transform:translateY(-1px)}
+.event-cover{width:72px;height:72px;border-radius:10px;object-fit:cover;flex-shrink:0;background:#1a1a1e}
+.event-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.event-title{font-size:14px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.event-title a{color:var(--text)}
+.event-title a:hover{color:var(--accent)}
+.event-desc{font-size:11.5px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.event-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:auto}
+.tag{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;white-space:nowrap}
+.tag-date{background:var(--accent-soft);color:var(--accent)}
+.tag-loc{background:rgba(45,212,160,.08);color:var(--green)}
+.tag-guests{background:rgba(255,255,255,.05);color:var(--text2)}
+.tag-sold{background:rgba(244,63,94,.12);color:var(--red);font-weight:700}
+.event-host{font-size:10.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.no-cover{width:72px;height:72px;border-radius:10px;background:#1a1a1e;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+
+.footer{text-align:center;padding:32px 24px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);margin-top:40px}
+.footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🌏 AI Builder Picks</h1>
+  <p>Curated AI community events worth joining this week · Apr 20 – May 6, 2026</p>
+</div>
+<div class="region-nav" id="nav"></div>
+<div class="container" id="content"></div>
+<div class="footer">
+  Data from <a href="https://lu.ma" target="_blank">Luma</a> · Full calendar with 1500+ events → <a href="./index.html">AI Event Scout</a>
+</div>
+
+<script>
+const FLAGS={"United States":"🇺🇸","Singapore":"🇸🇬","Japan":"🇯🇵","Thailand":"🇹🇭","South Korea":"🇰🇷","Canada":"🇨🇦","India":"🇮🇳","United Kingdom":"🇬🇧","Morocco":"🇲🇦","Kazakhstan":"🇰🇿","Philippines":"🇵🇭","Argentina":"🇦🇷"};
+const REGION_ORDER=["Singapore","Japan","Thailand","South Korea","United States","Canada","United Kingdom","India","Argentina","Philippines","Morocco","Kazakhstan"];
+let DATA=[], activeRegion='ALL';
+
+async function init(){
+  const resp=await fetch('./curated_events.json?t='+Date.now());
+  DATA=await resp.json();
+  DATA.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  buildNav();
+  render();
+}
+
+function buildNav(){
+  const nav=document.getElementById('nav');
+  const allBtn=mk('div','region-btn active');
+  allBtn.textContent='All ('+DATA.length+')';
+  allBtn.onclick=()=>{activeRegion='ALL';render();updateNav()};
+  nav.appendChild(allBtn);
+  for(const r of REGION_ORDER){
+    const cnt=DATA.filter(e=>e.region===r).length;
+    if(!cnt) continue;
+    const btn=mk('div','region-btn');
+    btn.textContent=(FLAGS[r]||'')+' '+r+' ('+cnt+')';
+    btn.dataset.region=r;
+    btn.onclick=()=>{activeRegion=r;render();updateNav();};
+    nav.appendChild(btn);
+  }
+}
+
+function updateNav(){
+  document.querySelectorAll('.region-btn').forEach(b=>{
+    b.classList.toggle('active',(b.dataset.region||'ALL')===activeRegion);
+  });
+}
+
+function render(){
+  const box=document.getElementById('content');
+  let events=activeRegion==='ALL'?[...DATA]:DATA.filter(e=>e.region===activeRegion);
+
+  const grouped={};
+  for(const e of events){
+    const r=e.region;
+    if(!grouped[r]) grouped[r]=[];
+    grouped[r].push(e);
+  }
+
+  let html='';
+  const order=activeRegion==='ALL'?REGION_ORDER:[activeRegion];
+  for(const r of order){
+    const evts=grouped[r];
+    if(!evts) continue;
+    evts.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const flag=FLAGS[r]||'🏳️';
+
+    html+='<div class="region-section" id="region-'+r.replace(/\s/g,'-')+'">';
+    html+='<div class="region-header"><span class="region-flag">'+flag+'</span><span class="region-name">'+r+'</span><span class="region-count">'+evts.length+' events</span></div>';
+
+    for(const e of evts){
+      const cover=e.cover_url
+        ?'<img class="event-cover" src="'+e.cover_url+'" loading="lazy" onerror="this.outerHTML=\'<div class=no-cover>'+flag+'</div>\'">'
+        :'<div class="no-cover">'+flag+'</div>';
+
+      const dateObj=e.date?new Date(e.date+'T00:00:00'):null;
+      const dateStr=dateObj?dateObj.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}):'TBD';
+
+      const cityStr=e.city||(e.location?e.location.split(',')[0]:'');
+
+      let tags='<span class="tag tag-date">'+esc(dateStr)+'</span>';
+      if(cityStr) tags+='<span class="tag tag-loc">'+esc(cityStr)+'</span>';
+      if(e.sold_out) tags+='<span class="tag tag-sold">SOLD OUT</span>';
+      else if(e.guest_count>0) tags+='<span class="tag tag-guests">👥 '+e.guest_count+'</span>';
+
+      const desc=e.description||'';
+
+      html+='<a href="'+e.url+'" target="_blank" class="event-card">'
+        +cover
+        +'<div class="event-body">'
+        +'<div class="event-title">'+esc(e.name)+'</div>'
+        +(desc?'<div class="event-desc">'+esc(desc)+'</div>':'')
+        +'<div class="event-meta">'+tags+'</div>'
+        +(e.hosts?'<div class="event-host">by '+esc(e.hosts)+'</div>':'')
+        +'</div>'
+        +'</a>';
+    }
+    html+='</div>';
+  }
+  box.innerHTML=html;
+}
+
+function mk(t,c){const el=document.createElement(t);el.className=c;return el}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+init();
+</script>
+</body>
+</html>
